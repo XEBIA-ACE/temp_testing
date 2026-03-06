@@ -1,0 +1,609 @@
+# Specification: Digital Aggregators Partner Portal
+
+## Purpose
+
+This specification defines the behavioral contract for the Digital Aggregators Partner Portal, a secure, multi-tenant platform for managing leads, documents, analytics, finance, ticketing, knowledge, and notifications for digital aggregator partners. The system SHALL enforce strong RBAC, geo-scoping, and audit logging, and SHALL integrate with external authentication, payment, AV scanning, notification, CDN, and analytics/monitoring systems.
+
+---
+
+## Technologies and Runtime Stack
+
+- **Languages:** Node.js, Java, Python, Go, Scala
+- **Frameworks:** Express, Spring Boot, FastAPI
+- **Frontend:** ReactJS, React Native, PWA
+- **API Gateway:** Kong, Apigee, Nginx
+- **Databases:** PostgreSQL (Row Level Security), MongoDB, Cassandra, Elasticsearch
+- **Cache:** Redis (Clustered)
+- **Object Storage:** S3, Azure Blob Storage
+- **Messaging:** Kafka, RabbitMQ, SQS
+- **Auth:** OAuth2, JWT, SAML, Keycloak, Auth0, OPA, Casbin
+- **Notifications:** Twilio, SendGrid, AWS SNS
+- **AV Scanning:** ClamAV, VirusTotal
+- **CDN:** CloudFront, Azure CDN, Fastly
+- **Monitoring:** Prometheus, Grafana, ELK Stack
+- **Infra:** Kubernetes (EKS/AKS/GKE), Istio, Terraform
+
+---
+
+## Components
+
+### API Gateway (SVC-API-GW)
+- **Responsibilities:** Unified ingress, authentication (OAuth2/JWT), RBAC policy enforcement, protocol mediation, centralized logging, versioning, and throttling.
+- **Technologies:** Kong, Apigee, Nginx, OpenAPI/Swagger
+
+### Lead Management Microservice (SVC-LEAD-MGMT)
+- **Responsibilities:** Lead intake, deduplication, enrichment, status tracking/eventing, lifecycle, and data partitioning.
+- **Technologies:** Node.js/Express or Java/Spring Boot, Kafka/RabbitMQ, PostgreSQL/NoSQL
+
+### Document Management Microservice (SVC-DOC-MGMT)
+- **Responsibilities:** Document uploads/downloads, virus scanning, PII masking, secure storage, and policy-driven access.
+- **Technologies:** Python/Go, S3/Blob Storage, ClamAV, Pre-signed URL system
+
+### Analytics & Reporting Microservice (SVC-ANALYTICS)
+- **Responsibilities:** Business metric aggregation, reporting, geo-analytics, funnel/conversion/statistics, CQRS read models.
+- **Technologies:** Python/FastAPI or Scala/Spark, OLAP DB/ClickHouse/BigQuery, Elasticsearch
+
+### Finance & Payouts Microservice (SVC-FINANCE)
+- **Responsibilities:** Partner payouts, invoices, commissions, disputes, and taxes.
+- **Technologies:** Java/Spring Boot, SQL DB, PDF Generator
+
+### User & Access Management Microservice (SVC-USER-MGMT)
+- **Responsibilities:** Onboarding, RBAC policy, geo-scoping, access audits, session management.
+- **Technologies:** Java/Spring Boot, Keycloak/Auth0, SQL/LDAP
+
+### Ticketing & Communication Microservice (SVC-TICKETING)
+- **Responsibilities:** Support tickets, communication, announcements.
+- **Technologies:** Node.js/Express, SQL/NoSQL DB, WebSocket
+
+### Knowledge Hub / Compliance Microservice (SVC-KNOWLEDGE)
+- **Responsibilities:** Training/media resources, certifications, static/rich content streaming.
+- **Technologies:** Node.js/Python, CMS/Media Streaming
+
+### RBAC Infrastructure Service (SVC-RBAC)
+- **Responsibilities:** Central RBAC policy enforcement, permissions API/service, geo-based scoping.
+- **Technologies:** OPA (Open Policy Agent), Keycloak, Casbin
+
+### Audit Logging Service (SVC-AUDIT)
+- **Responsibilities:** Immutable audit trails for all sensitive actions.
+- **Technologies:** Append-only Log Store, Kafka Streams, Elasticsearch
+
+### Notification Service (SVC-NOTIFY)
+- **Responsibilities:** Multi-channel notifications (in-app, email, SMS, webhooks), delivery tracking.
+- **Technologies:** Node.js/Python, Twilio/SendGrid/SNS, Webhook Engine
+
+### Messaging/Event Streaming Service (SVC-MSG-BUS)
+- **Responsibilities:** Message/event brokering, async business/event workflows, decoupled bulk processing.
+- **Technologies:** Kafka, RabbitMQ, SQS
+
+---
+
+## APIs
+
+### Lead Management
+
+#### POST /leads
+- **Purpose:** Create a new lead.
+- **Inputs:** Lead data (partner_id, customer info, source, etc.)
+- **Outputs:** Created lead object with lead_id.
+- **Main Flow:** Validate input → Deduplicate → Enrich → Persist → Publish event → Return lead.
+
+#### GET /leads
+- **Purpose:** List leads with filters.
+- **Inputs:** Query params (partner_id, status, date range, pagination)
+- **Outputs:** List of leads.
+- **Main Flow:** Validate RBAC → Query DB → Return filtered leads.
+
+#### GET /leads/{leadId}
+- **Purpose:** Get lead details.
+- **Inputs:** leadId (path param)
+- **Outputs:** Lead object.
+- **Main Flow:** Validate RBAC → Query DB → Return lead.
+
+#### PUT /leads/{leadId}
+- **Purpose:** Update lead.
+- **Inputs:** leadId (path param), updated fields
+- **Outputs:** Updated lead object.
+- **Main Flow:** Validate RBAC → Update DB → Publish event → Return lead.
+
+#### POST /leads/bulk
+- **Purpose:** Bulk lead intake.
+- **Inputs:** Array of lead data
+- **Outputs:** Bulk result (success/failure per lead).
+- **Main Flow:** Validate input → Deduplicate → Enrich → Persist → Publish events → Return results.
+
+#### GET /leads/{leadId}/documents
+- **Purpose:** List documents associated with a lead.
+- **Inputs:** leadId (path param)
+- **Outputs:** List of document metadata.
+- **Main Flow:** Validate RBAC → Query DB → Return documents.
+
+---
+
+### Document Management
+
+#### POST /documents
+- **Purpose:** Upload a document.
+- **Inputs:** File, metadata (lead_id, doc_type, etc.)
+- **Outputs:** Document metadata with doc_id.
+- **Main Flow:** Validate input → Store in S3 → Trigger AV scan → Persist metadata → Audit log → Return metadata.
+
+#### GET /documents/{docId}
+- **Purpose:** Get document metadata.
+- **Inputs:** docId (path param)
+- **Outputs:** Document metadata.
+- **Main Flow:** Validate RBAC → Query DB → Return metadata.
+
+#### GET /documents/{docId}/download
+- **Purpose:** Download document via pre-signed URL.
+- **Inputs:** docId (path param)
+- **Outputs:** Pre-signed URL or file stream.
+- **Main Flow:** Validate RBAC → Generate pre-signed URL → Audit log → Return URL.
+
+#### DELETE /documents/{docId}
+- **Purpose:** Delete document.
+- **Inputs:** docId (path param)
+- **Outputs:** Confirmation.
+- **Main Flow:** Validate RBAC → Mark deleted in DB → Audit log → Return confirmation.
+
+#### POST /documents/{docId}/scan
+- **Purpose:** Trigger AV scan.
+- **Inputs:** docId (path param)
+- **Outputs:** Scan result.
+- **Main Flow:** Validate RBAC → Call AV service → Update metadata → Audit log → Return result.
+
+---
+
+### Analytics & Reporting
+
+#### GET /analytics/dashboard
+- **Purpose:** Get dashboard metrics.
+- **Inputs:** Query params (partner_id, date range)
+- **Outputs:** Dashboard metrics object.
+- **Main Flow:** Validate RBAC → Query Elasticsearch/OLAP → Return metrics.
+
+#### GET /analytics/funnel
+- **Purpose:** Get funnel/conversion analytics.
+- **Inputs:** Query params (partner_id, date range)
+- **Outputs:** Funnel analytics object.
+- **Main Flow:** Validate RBAC → Query Elasticsearch/OLAP → Return analytics.
+
+#### GET /analytics/reports
+- **Purpose:** Generate/download reports.
+- **Inputs:** Query params (report_type, partner_id, date range)
+- **Outputs:** Report file or download URL.
+- **Main Flow:** Validate RBAC → Generate report → Return file/URL.
+
+#### GET /analytics/geo
+- **Purpose:** Get geo-analytics.
+- **Inputs:** Query params (partner_id, date range)
+- **Outputs:** Geo-analytics object.
+- **Main Flow:** Validate RBAC → Query Elasticsearch/OLAP → Return analytics.
+
+---
+
+### Finance & Payouts
+
+#### GET /payouts
+- **Purpose:** List payouts.
+- **Inputs:** Query params (partner_id, status, date range, pagination)
+- **Outputs:** List of payouts.
+- **Main Flow:** Validate RBAC → Query DB → Return payouts.
+
+#### GET /payouts/{payoutId}
+- **Purpose:** Get payout details.
+- **Inputs:** payoutId (path param)
+- **Outputs:** Payout object.
+- **Main Flow:** Validate RBAC → Query DB → Return payout.
+
+#### GET /invoices
+- **Purpose:** List invoices.
+- **Inputs:** Query params (partner_id, status, date range, pagination)
+- **Outputs:** List of invoices.
+- **Main Flow:** Validate RBAC → Query DB → Return invoices.
+
+#### GET /invoices/{invoiceId}
+- **Purpose:** Get invoice details.
+- **Inputs:** invoiceId (path param)
+- **Outputs:** Invoice object.
+- **Main Flow:** Validate RBAC → Query DB → Return invoice.
+
+#### POST /disputes
+- **Purpose:** Create a dispute.
+- **Inputs:** Dispute data (payout_id, reason, etc.)
+- **Outputs:** Created dispute object.
+- **Main Flow:** Validate input → Persist → Notify → Return dispute.
+
+#### GET /disputes/{disputeId}
+- **Purpose:** Get dispute details.
+- **Inputs:** disputeId (path param)
+- **Outputs:** Dispute object.
+- **Main Flow:** Validate RBAC → Query DB → Return dispute.
+
+---
+
+### User & Access Management
+
+#### POST /users
+- **Purpose:** Onboard a new user.
+- **Inputs:** User data (name, email, role, partner_id, etc.)
+- **Outputs:** Created user object.
+- **Main Flow:** Validate input → Assign roles → Persist → Provision SSO → Audit log → Return user.
+
+#### GET /users
+- **Purpose:** List users.
+- **Inputs:** Query params (partner_id, role, status, pagination)
+- **Outputs:** List of users.
+- **Main Flow:** Validate RBAC → Query DB → Return users.
+
+#### GET /users/{userId}
+- **Purpose:** Get user details.
+- **Inputs:** userId (path param)
+- **Outputs:** User object.
+- **Main Flow:** Validate RBAC → Query DB → Return user.
+
+#### PUT /users/{userId}
+- **Purpose:** Update user.
+- **Inputs:** userId (path param), updated fields
+- **Outputs:** Updated user object.
+- **Main Flow:** Validate RBAC → Update DB → Audit log → Return user.
+
+#### DELETE /users/{userId}
+- **Purpose:** Deactivate user.
+- **Inputs:** userId (path param)
+- **Outputs:** Confirmation.
+- **Main Flow:** Validate RBAC → Mark deactivated in DB → Audit log → Return confirmation.
+
+#### GET /users/{userId}/permissions
+- **Purpose:** Get user permissions.
+- **Inputs:** userId (path param)
+- **Outputs:** Permissions object.
+- **Main Flow:** Validate RBAC → Query RBAC service → Return permissions.
+
+---
+
+### Ticketing & Communication
+
+#### POST /tickets
+- **Purpose:** Create a support ticket.
+- **Inputs:** Ticket data (subject, description, priority, etc.)
+- **Outputs:** Created ticket object.
+- **Main Flow:** Validate input → Persist → Notify support → Return ticket.
+
+#### GET /tickets
+- **Purpose:** List tickets.
+- **Inputs:** Query params (partner_id, status, priority, pagination)
+- **Outputs:** List of tickets.
+- **Main Flow:** Validate RBAC → Query DB → Return tickets.
+
+#### GET /tickets/{ticketId}
+- **Purpose:** Get ticket details.
+- **Inputs:** ticketId (path param)
+- **Outputs:** Ticket object.
+- **Main Flow:** Validate RBAC → Query DB → Return ticket.
+
+#### PUT /tickets/{ticketId}
+- **Purpose:** Update ticket.
+- **Inputs:** ticketId (path param), updated fields
+- **Outputs:** Updated ticket object.
+- **Main Flow:** Validate RBAC → Update DB → Notify → Return ticket.
+
+#### POST /announcements
+- **Purpose:** Create an announcement.
+- **Inputs:** Announcement data (title, body, audience, etc.)
+- **Outputs:** Created announcement object.
+- **Main Flow:** Validate input → Persist → Notify audience → Return announcement.
+
+#### GET /announcements
+- **Purpose:** List announcements.
+- **Inputs:** Query params (audience, date range, pagination)
+- **Outputs:** List of announcements.
+- **Main Flow:** Validate RBAC → Query DB → Return announcements.
+
+---
+
+### Knowledge Hub
+
+#### GET /knowledge/articles
+- **Purpose:** List articles/FAQs.
+- **Inputs:** Query params (category, search, pagination)
+- **Outputs:** List of articles.
+- **Main Flow:** Validate RBAC → Query DB → Return articles.
+
+#### GET /knowledge/articles/{articleId}
+- **Purpose:** Get article details.
+- **Inputs:** articleId (path param)
+- **Outputs:** Article object.
+- **Main Flow:** Validate RBAC → Query DB → Return article.
+
+#### GET /knowledge/certifications
+- **Purpose:** List certifications.
+- **Inputs:** Query params (user_id, status, pagination)
+- **Outputs:** List of certifications.
+- **Main Flow:** Validate RBAC → Query DB → Return certifications.
+
+#### GET /knowledge/certifications/{certId}
+- **Purpose:** Get certification details.
+- **Inputs:** certId (path param)
+- **Outputs:** Certification object.
+- **Main Flow:** Validate RBAC → Query DB → Return certification.
+
+---
+
+### Notification Service
+
+#### POST /notifications
+- **Purpose:** Send a notification.
+- **Inputs:** Notification data (channel, recipient, message, etc.)
+- **Outputs:** Notification status.
+- **Main Flow:** Validate input → Route to channel (in-app, email, SMS, webhook) → Track delivery → Return status.
+
+#### GET /notifications
+- **Purpose:** List notifications.
+- **Inputs:** Query params (user_id, channel, status, pagination)
+- **Outputs:** List of notifications.
+- **Main Flow:** Validate RBAC → Query DB → Return notifications.
+
+#### GET /notifications/{notifId}
+- **Purpose:** Get notification details.
+- **Inputs:** notifId (path param)
+- **Outputs:** Notification object.
+- **Main Flow:** Validate RBAC → Query DB → Return notification.
+
+---
+
+### Audit Logging
+
+#### GET /audit/logs
+- **Purpose:** Search audit logs.
+- **Inputs:** Query params (user_id, action, date range, pagination)
+- **Outputs:** List of audit log entries.
+- **Main Flow:** Validate RBAC → Query Elasticsearch → Return logs.
+
+#### GET /audit/logs/{logId}
+- **Purpose:** Get audit log entry.
+- **Inputs:** logId (path param)
+- **Outputs:** Audit log entry object.
+- **Main Flow:** Validate RBAC → Query Elasticsearch → Return log entry.
+
+---
+
+## Data Models
+
+### Lead
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| lead_id       | UUID      | Unique, immutable                       |
+| partner_id    | UUID      | Required, FK to Partner                 |
+| customer_name | String    | Required                                |
+| customer_email| String    | Optional, valid email format            |
+| customer_phone| String    | Optional, valid phone format            |
+| source        | String    | Required                                |
+| status        | Enum      | e.g., NEW, IN_PROGRESS, CONVERTED, LOST |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### Document
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| doc_id        | UUID      | Unique, immutable                       |
+| lead_id       | UUID      | Optional, FK to Lead                    |
+| partner_id    | UUID      | Required, FK to Partner                 |
+| doc_type      | String    | Required                                |
+| file_name     | String    | Required                                |
+| storage_path  | String    | Required, S3/Blob path                  |
+| scan_status   | Enum      | e.g., PENDING, CLEAN, INFECTED          |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### User
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| user_id       | UUID      | Unique, immutable                       |
+| partner_id    | UUID      | Required, FK to Partner                 |
+| name          | String    | Required                                |
+| email         | String    | Required, unique, valid email format    |
+| role          | Enum      | e.g., AGENT, ADMIN, FINANCE, OPS        |
+| status        | Enum      | e.g., ACTIVE, INACTIVE                  |
+| geo_scope     | String[]  | Optional, list of allowed regions       |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### Payout
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| payout_id     | UUID      | Unique, immutable                       |
+| partner_id    | UUID      | Required, FK to Partner                 |
+| amount        | Decimal   | Required, >= 0                          |
+| currency      | String    | Required                                |
+| status        | Enum      | e.g., PENDING, PROCESSED, FAILED        |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### Invoice
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| invoice_id    | UUID      | Unique, immutable                       |
+| partner_id    | UUID      | Required, FK to Partner                 |
+| amount        | Decimal   | Required, >= 0                          |
+| currency      | String    | Required                                |
+| status        | Enum      | e.g., DRAFT, SENT, PAID                 |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### Ticket
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| ticket_id     | UUID      | Unique, immutable                       |
+| partner_id    | UUID      | Required, FK to Partner                 |
+| user_id       | UUID      | Required, FK to User                    |
+| subject       | String    | Required                                |
+| description   | String    | Required                                |
+| priority      | Enum      | e.g., LOW, MEDIUM, HIGH                 |
+| status        | Enum      | e.g., OPEN, IN_PROGRESS, RESOLVED       |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### Notification
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| notif_id      | UUID      | Unique, immutable                       |
+| user_id       | UUID      | Required, FK to User                    |
+| channel       | Enum      | e.g., IN_APP, EMAIL, SMS, WEBHOOK       |
+| message       | String    | Required                                |
+| status        | Enum      | e.g., PENDING, SENT, FAILED             |
+| created_at    | Timestamp | Immutable                               |
+| updated_at    | Timestamp | Auto-updated                            |
+
+### AuditLog
+| Field         | Type      | Invariants/Notes                        |
+|---------------|-----------|-----------------------------------------|
+| log_id        | UUID      | Unique, immutable                       |
+| user_id       | UUID      | Optional, FK to User                    |
+| action        | String    | Required                                |
+| resource      | String    | Required                                |
+| resource_id   | UUID      | Optional                                |
+| timestamp     | Timestamp | Immutable                               |
+| details       | JSON      | Optional, additional context            |
+
+---
+
+## Interactions with Dependencies
+
+### External Authentication Providers (OAuth2/SAML)
+- **Protocol:** OAuth2, OpenID Connect, SAML
+- **Calls:** User authentication, SSO, token validation
+- **Payloads:** JWT tokens, user claims
+- **Error/Retry:** Retry on transient errors; fail-closed on auth failure
+
+### Payment/Tax Processing Platforms
+- **Protocol:** HTTPS REST API
+- **Calls:** Initiate payout, validate transaction, generate tax docs
+- **Payloads:** Payout request, transaction status, tax document
+- **Error/Retry:** Retry on transient errors; log and alert on persistent failure
+
+### Malware Scanning Service (ClamAV, VirusTotal)
+- **Protocol:** API, queue
+- **Calls:** Submit document for scan, retrieve scan result
+- **Payloads:** File reference, scan status
+- **Error/Retry:** Retry on transient errors; quarantine on persistent failure
+
+### Email/SMS Gateway (Twilio, SendGrid, AWS SNS)
+- **Protocol:** SMTP, HTTPS API
+- **Calls:** Send email, send SMS, send push notification
+- **Payloads:** Notification message, delivery status
+- **Error/Retry:** Retry on transient errors; log and alert on persistent failure
+
+### CDN (CloudFront, Azure CDN, Fastly)
+- **Protocol:** HTTPS
+- **Calls:** Serve static assets, media, training content
+- **Payloads:** Asset URL, cache headers
+- **Error/Retry:** Fallback to origin on cache miss
+
+### Analytics/Monitoring Platform (ELK, Prometheus, Grafana)
+- **Protocol:** HTTPS/API
+- **Calls:** Export logs, metrics, analytics data
+- **Payloads:** Log entries, metric data
+- **Error/Retry:** Buffer and retry on transient errors
+
+### Partner IT Systems (API/Webhook/Bulk)
+- **Protocol:** HTTPS REST, Webhook, Bulk CSV/Excel
+- **Calls:** Push/pull leads, docs, notifications
+- **Payloads:** Lead data, document metadata, notification events
+- **Error/Retry:** Retry on transient errors; log and alert on persistent failure
+
+---
+
+## Key Flows
+
+### Lead Intake Flow
+1. User submits lead via UI or API.
+2. API Gateway authenticates and authorizes request.
+3. LeadController receives request.
+4. LeadService validates, deduplicates, and enriches lead.
+5. LeadRepository persists lead to PostgreSQL.
+6. LeadEventPublisher publishes lead event to Kafka.
+7. NotificationService sends notification to partner.
+8. AuditService logs the action.
+9. Response returned to user.
+
+### Document Upload Flow
+1. User uploads document via UI or API.
+2. API Gateway authenticates and authorizes request.
+3. DocumentController receives request.
+4. DocumentService validates and stores file in S3.
+5. AVScanClient triggers AV scan.
+6. DocumentRepository persists metadata to PostgreSQL.
+7. AuditService logs the action.
+8. Response returned to user.
+
+### Payout Flow
+1. Finance user requests payout via UI or API.
+2. API Gateway authenticates and authorizes request.
+3. FinanceController receives request.
+4. FinanceService calculates and validates payout.
+5. PaymentGatewayClient initiates payout with external platform.
+6. FinanceRepository persists payout record.
+7. NotificationService notifies partner.
+8. AuditService logs the action.
+9. Response returned to user.
+
+### User Onboarding Flow
+1. Admin creates user via UI or API.
+2. API Gateway authenticates and authorizes request.
+3. UserController receives request.
+4. UserService validates and assigns roles.
+5. UserRepository persists user to PostgreSQL.
+6. SSOClient provisions user in external SSO.
+7. AuditService logs the action.
+8. Response returned to admin.
+
+### Ticket Creation Flow
+1. User creates ticket via UI or API.
+2. API Gateway authenticates and authorizes request.
+3. TicketController receives request.
+4. TicketService creates and assigns ticket.
+5. TicketRepository persists ticket to PostgreSQL.
+6. NotificationService notifies support team.
+7. AuditService logs the action.
+8. Response returned to user.
+
+---
+
+## Requirements and Scenarios
+
+### Requirement: Lead Intake SHALL Support Deduplication
+
+#### Scenario: Duplicate Lead Submitted
+- **Given** a lead with the same customer_email and partner_id already exists
+- **When** a new lead with the same customer_email and partner_id is submitted
+- **Then** the system SHALL reject the duplicate and return an error
+
+### Requirement: Document Upload SHALL Trigger AV Scan
+
+#### Scenario: Document Uploaded
+- **Given** a user uploads a document
+- **When** the document is stored in S3
+- **Then** the system SHALL trigger an AV scan and update scan_status
+
+### Requirement: RBAC SHALL Be Enforced on All APIs
+
+#### Scenario: Unauthorized Access Attempt
+- **Given** a user without the required role
+- **When** the user attempts to access a restricted API
+- **Then** the system SHALL return a 403 Forbidden error
+
+### Requirement: Audit Logging SHALL Be Immutable
+
+#### Scenario: Sensitive Action Performed
+- **Given** a user performs a sensitive action (e.g., delete document)
+- **When** the action is completed
+- **Then** the system SHALL write an immutable audit log entry
+
+### Requirement: Notifications SHALL Support Multiple Channels
+
+#### Scenario: Notification Sent
+- **Given** a platform event triggers a notification
+- **When** the notification is processed
+- **Then** the system SHALL send the notification via the configured channel (in-app, email, SMS, webhook)
+
+---

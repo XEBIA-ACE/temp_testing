@@ -1,0 +1,152 @@
+# Proposal: Digital Aggregators Partner Portal
+
+## Purpose and Business Value
+
+The Digital Aggregators Partner Portal is a secure, multi-tenant, service-oriented platform designed to enable digital aggregators and their staff to efficiently manage leads, documents, analytics, finance/payouts, training, and support. The platform provides:
+
+- **Centralized Partner Engagement:** A single portal for partners to manage all operational workflows, reducing friction and improving productivity.
+- **Lead Conversion Optimization:** Real-time analytics and funnel tracking to increase lead-to-loan conversion rates.
+- **Automated Financial Workflows:** Streamlined payouts, invoices, commissions, and dispute resolution, reducing manual effort and errors.
+- **Compliance and Security:** Strong RBAC, geo-scoping, audit logging, and AV scanning to meet regulatory and security requirements.
+- **Scalable Integration:** API-first, event-driven architecture supporting REST, webhooks, and bulk integrations with partner IT systems.
+
+### Business Objectives
+- Enhance partner engagement and self-service capabilities.
+- Increase lead conversion rates through detailed funnel analytics.
+- Automate and streamline financial and compliance processes.
+- Achieve a competitive edge by offering innovative digital solutions.
+- Improve operational efficiency and data-driven decision-making.
+
+---
+
+## Scope
+
+### In-Scope
+- Lead intake, deduplication, enrichment, lifecycle management, and bulk/exchange.
+- Secure document upload, storage, AV scanning, PII masking, and policy-driven access.
+- Real-time analytics, reporting, funnel tracking, geo-analytics, and CQRS read models.
+- Partner payouts, invoices, commissions, disputes, and tax documentation.
+- User onboarding, RBAC, geo-scoping, session management, and access auditing.
+- Support ticketing, escalation, SLA workflows, and announcements.
+- Knowledge/training content, certifications, FAQs, and compliance resources.
+- Centralized RBAC policy enforcement and immutable audit logging.
+- Multi-channel notifications (in-app, email, SMS, webhooks).
+- Event-driven async workflows and messaging/event streaming.
+- Integration with external authentication, payment, AV scanning, notification, CDN, and analytics/monitoring systems.
+
+### Out-of-Scope
+- Core banking or loan origination system (LOS) logic (external integration only).
+- Direct customer (end-borrower) facing features.
+- Custom partner-specific UI branding (unless explicitly required).
+- Legacy system migration (unless explicitly required).
+
+---
+
+## Responsibilities
+
+- **API Gateway:** Unified ingress, authentication, RBAC, throttling, logging, and protocol mediation.
+- **Lead Management:** Lead intake, deduplication, enrichment, lifecycle, and event publishing.
+- **Document Management:** Secure upload/download, AV scanning, PII masking, and policy-driven access.
+- **Analytics & Reporting:** Dashboards, funnel tracking, KPIs, geo-analytics, and CQRS read models.
+- **Finance & Payouts:** Payouts, invoices, commissions, disputes, and tax documentation.
+- **User & Access Management:** Onboarding, RBAC, geo-scoping, session management, and access auditing.
+- **Ticketing & Communication:** Support tickets, escalation, SLA, and announcements.
+- **Knowledge Hub:** Training, certifications, FAQs, and compliance content.
+- **RBAC Infrastructure:** Centralized policy enforcement and permissions API.
+- **Audit Logging:** Immutable audit trails for compliance and forensics.
+- **Notification Service:** Multi-channel notifications and delivery tracking.
+- **Messaging/Event Streaming:** Event brokering and async workflows.
+
+---
+
+## Impacted/Depending Systems and Data Stores
+
+### Internal Systems
+- Partner Portal Web/Mobile Frontend
+- API Gateway
+- Lead Management Microservice
+- Document Management Microservice
+- Analytics & Reporting Microservice
+- Finance & Payouts Microservice
+- User & Access Management Microservice
+- Ticketing & Communication Microservice
+- Knowledge Hub / Compliance Microservice
+- RBAC Infrastructure Service
+- Audit Logging Service
+- Notification Service
+- Messaging/Event Streaming Service
+
+### Data Stores
+- PostgreSQL (Row Level Security, partitioned by tenant)
+- MongoDB/Cassandra (multi-tenant NoSQL)
+- S3/Blob Storage (documents, media)
+- Elasticsearch (search, analytics, audit)
+- Redis (cache, session)
+
+### External Systems
+- External Authentication Providers (OAuth2/SAML)
+- Payment/Tax Processing Platforms
+- Malware Scanning Service (ClamAV, VirusTotal)
+- Email/SMS Gateway (Twilio, SendGrid, AWS SNS)
+- Content Delivery Network (CloudFront, Azure CDN, Fastly)
+- Analytics/Monitoring Platform (ELK, Prometheus, Grafana)
+- Partner IT Systems (API/Webhook/Bulk)
+
+---
+
+## Acceptance Criteria
+
+### Lead Management
+- [ ] Partners can create, update, and view leads via `POST /leads`, `PUT /leads/{leadId}`, `GET /leads`, `GET /leads/{leadId}`.
+- [ ] Bulk lead intake is supported via `POST /leads/bulk`.
+- [ ] Lead events are published to the event bus for analytics and notifications.
+- [ ] Lead data is partitioned by partner/tenant.
+
+### Document Management
+- [ ] Partners can upload documents via `POST /documents` with AV scanning and PII masking.
+- [ ] Documents are stored securely in S3/Blob with pre-signed URL access via `GET /documents/{docId}/download`.
+- [ ] Document metadata is retrievable via `GET /documents/{docId}`.
+- [ ] All document actions are audit-logged.
+
+### Analytics & Reporting
+- [ ] Partners can view dashboards via `GET /analytics/dashboard`.
+- [ ] Funnel and geo-analytics are available via `GET /analytics/funnel`, `GET /analytics/geo`.
+- [ ] Reports can be generated/downloaded via `GET /analytics/reports`.
+
+### Finance & Payouts
+- [ ] Partners can view payouts and invoices via `GET /payouts`, `GET /invoices`.
+- [ ] Disputes can be created and tracked via `POST /disputes`, `GET /disputes/{disputeId}`.
+- [ ] Payout and invoice details are available via `GET /payouts/{payoutId}`, `GET /invoices/{invoiceId}`.
+
+### User & Access Management
+- [ ] Admins can onboard, update, and deactivate users via `POST /users`, `PUT /users/{userId}`, `DELETE /users/{userId}`.
+- [ ] User permissions are retrievable via `GET /users/{userId}/permissions`.
+- [ ] RBAC and geo-scoping are enforced on all API and UI actions.
+
+### Ticketing & Communication
+- [ ] Partners can create and track support tickets via `POST /tickets`, `GET /tickets`, `GET /tickets/{ticketId}`.
+- [ ] Announcements can be created and listed via `POST /announcements`, `GET /announcements`.
+
+### Knowledge Hub
+- [ ] Partners can access articles and certifications via `GET /knowledge/articles`, `GET /knowledge/certifications`.
+
+### Notifications
+- [ ] Notifications are sent via in-app, email, SMS, and webhooks for platform events.
+- [ ] Notification delivery is tracked via `GET /notifications`.
+
+### Audit Logging
+- [ ] All sensitive actions are logged to an immutable audit store.
+- [ ] Audit logs are searchable via `GET /audit/logs`.
+
+### Security & Compliance
+- [ ] All APIs enforce OAuth2/JWT authentication and RBAC.
+- [ ] Data is encrypted at rest and in transit.
+- [ ] System achieves 99.9% uptime SLA.
+
+---
+
+## Related Features
+
+- TODO: Feature IDs not explicitly present in context.
+
+---

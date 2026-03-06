@@ -1,0 +1,186 @@
+# Tasks: Digital Aggregators Partner Portal
+
+## Lead Management Microservice (SVC-LEAD-MGMT)
+
+- [ ] Define Lead data model (Lead entity, fields, invariants) in `models/lead.py` or `Lead.java`
+- [ ] Implement LeadRepository for CRUD operations (PostgreSQL)
+- [ ] Implement LeadService with deduplication, enrichment, and lifecycle logic
+- [ ] Implement LeadController with endpoints: POST /leads, GET /leads, GET /leads/{leadId}, PUT /leads/{leadId}, POST /leads/bulk, GET /leads/{leadId}/documents
+- [ ] Implement LeadEventPublisher to publish lead events to Kafka/RabbitMQ
+- [ ] Add RBAC checks to all Lead endpoints (integrate with RBACService)
+- [ ] Add audit logging for all Lead actions (integrate with AuditService)
+- [ ] Add input validation and error handling for Lead APIs
+- [ ] Add unit and integration tests for Lead Management
+
+---
+
+## Document Management Microservice (SVC-DOC-MGMT)
+
+- [ ] Define Document data model (Document entity, fields, invariants) in `models/document.py` or `Document.java`
+- [ ] Implement DocumentRepository for CRUD operations (PostgreSQL)
+- [ ] Implement ObjectStorageClient for S3/Blob upload/download
+- [ ] Implement AVScanClient for AV scanning integration (ClamAV, VirusTotal)
+- [ ] Implement DocumentService with upload, download, scan, and PII masking logic
+- [ ] Implement DocumentController with endpoints: POST /documents, GET /documents/{docId}, GET /documents/{docId}/download, DELETE /documents/{docId}, POST /documents/{docId}/scan
+- [ ] Add RBAC checks to all Document endpoints (integrate with RBACService)
+- [ ] Add audit logging for all Document actions (integrate with AuditService)
+- [ ] Add input validation and error handling for Document APIs
+- [ ] Add unit and integration tests for Document Management
+
+---
+
+## Analytics & Reporting Microservice (SVC-ANALYTICS)
+
+- [ ] Define Analytics data models (Dashboard, Funnel, GeoAnalytics) in `models/analytics.py` or `Analytics.java`
+- [ ] Implement AnalyticsRepository for Elasticsearch/OLAP queries
+- [ ] Implement AnalyticsService with dashboard, funnel, geo-analytics, and report generation logic
+- [ ] Implement AnalyticsController with endpoints: GET /analytics/dashboard, GET /analytics/funnel, GET /analytics/reports, GET /analytics/geo
+- [ ] Add RBAC checks to all Analytics endpoints (integrate with RBACService)
+- [ ] Add audit logging for report downloads (integrate with AuditService)
+- [ ] Add input validation and error handling for Analytics APIs
+- [ ] Add unit and integration tests for Analytics & Reporting
+
+---
+
+## Finance & Payouts Microservice (SVC-FINANCE)
+
+- [ ] Define Finance data models (Payout, Invoice, Dispute) in `models/finance.py` or `Finance.java`
+- [ ] Implement FinanceRepository for CRUD operations (PostgreSQL)
+- [ ] Implement PaymentGatewayClient for external payment/tax platform integration
+- [ ] Implement FinanceService with payout, invoice, dispute, and tax logic
+- [ ] Implement FinanceController with endpoints: GET /payouts, GET /payouts/{payoutId}, GET /invoices, GET /invoices/{invoiceId}, POST /disputes, GET /disputes/{disputeId}
+- [ ] Add RBAC checks to all Finance endpoints (integrate with RBACService)
+- [ ] Add audit logging for all Finance actions (integrate with AuditService)
+- [ ] Add input validation and error handling for Finance APIs
+- [ ] Add unit and integration tests for Finance & Payouts
+
+---
+
+## User & Access Management Microservice (SVC-USER-MGMT)
+
+- [ ] Define User data model (User entity, fields, invariants) in `models/user.py` or `User.java`
+- [ ] Implement UserRepository for CRUD operations (PostgreSQL)
+- [ ] Implement SSOClient for external SSO provider integration (OAuth2/SAML)
+- [ ] Implement UserService with onboarding, RBAC, geo-scoping, and session management logic
+- [ ] Implement UserController with endpoints: POST /users, GET /users, GET /users/{userId}, PUT /users/{userId}, DELETE /users/{userId}, GET /users/{userId}/permissions
+- [ ] Add RBAC checks to all User endpoints (integrate with RBACService)
+- [ ] Add audit logging for all User actions (integrate with AuditService)
+- [ ] Add input validation and error handling for User APIs
+- [ ] Add unit and integration tests for User & Access Management
+
+---
+
+## Ticketing & Communication Microservice (SVC-TICKETING)
+
+- [ ] Define Ticket and Announcement data models in `models/ticket.py` or `Ticket.java`
+- [ ] Implement TicketRepository for CRUD operations (PostgreSQL)
+- [ ] Implement TicketService with ticket lifecycle, escalation, and SLA logic
+- [ ] Implement AnnouncementService for broadcast announcements
+- [ ] Implement TicketController with endpoints: POST /tickets, GET /tickets, GET /tickets/{ticketId}, PUT /tickets/{ticketId}, POST /announcements, GET /announcements
+- [ ] Add RBAC checks to all Ticketing endpoints (integrate with RBACService)
+- [ ] Add audit logging for all Ticketing actions (integrate with AuditService)
+- [ ] Add input validation and error handling for Ticketing APIs
+- [ ] Add unit and integration tests for Ticketing & Communication
+
+---
+
+## Knowledge Hub / Compliance Microservice (SVC-KNOWLEDGE)
+
+- [ ] Define Article and Certification data models in `models/knowledge.py` or `Knowledge.java`
+- [ ] Implement KnowledgeRepository for CRUD operations (PostgreSQL)
+- [ ] Implement KnowledgeService with article and certification logic
+- [ ] Implement KnowledgeController with endpoints: GET /knowledge/articles, GET /knowledge/articles/{articleId}, GET /knowledge/certifications, GET /knowledge/certifications/{certId}
+- [ ] Add RBAC checks to all Knowledge endpoints (integrate with RBACService)
+- [ ] Add audit logging for content access (integrate with AuditService)
+- [ ] Add input validation and error handling for Knowledge APIs
+- [ ] Add unit and integration tests for Knowledge Hub
+
+---
+
+## RBAC Infrastructure Service (SVC-RBAC)
+
+- [ ] Define Permission and Role data models in `models/rbac.py` or `RBAC.java`
+- [ ] Implement RBACService with policy evaluation and geo-scoping logic
+- [ ] Implement RBACController with endpoints for permission checks (internal API)
+- [ ] Integrate with OPA/Keycloak/Casbin for policy enforcement
+- [ ] Add unit and integration tests for RBAC Infrastructure
+
+---
+
+## Audit Logging Service (SVC-AUDIT)
+
+- [ ] Define AuditLog data model in `models/audit.py` or `AuditLog.java`
+- [ ] Implement AuditService with append-only logging to Elasticsearch
+- [ ] Implement AuditController with endpoints: GET /audit/logs, GET /audit/logs/{logId}
+- [ ] Add RBAC checks to Audit endpoints (integrate with RBACService)
+- [ ] Add unit and integration tests for Audit Logging
+
+---
+
+## Notification Service (SVC-NOTIFY)
+
+- [ ] Define Notification data model in `models/notification.py` or `Notification.java`
+- [ ] Implement NotificationRepository for CRUD operations (PostgreSQL)
+- [ ] Implement NotificationGatewayClient for Twilio/SendGrid/SNS integration
+- [ ] Implement NotificationService with multi-channel delivery and tracking logic
+- [ ] Implement NotificationController with endpoints: POST /notifications, GET /notifications, GET /notifications/{notifId}
+- [ ] Add RBAC checks to Notification endpoints (integrate with RBACService)
+- [ ] Add audit logging for notification delivery (integrate with AuditService)
+- [ ] Add input validation and error handling for Notification APIs
+- [ ] Add unit and integration tests for Notification Service
+
+---
+
+## Messaging/Event Streaming Service (SVC-MSG-BUS)
+
+- [ ] Configure Kafka/RabbitMQ/SQS topics and queues for event streaming
+- [ ] Implement EventBusClient for publishing and consuming events
+- [ ] Add retry and dead-letter queue logic for failed events
+- [ ] Add unit and integration tests for Messaging/Event Streaming
+
+---
+
+## API Gateway (SVC-API-GW)
+
+- [ ] Configure Kong/Apigee/Nginx for unified ingress
+- [ ] Implement OAuth2/JWT authentication and RBAC policy enforcement
+- [ ] Configure rate limiting, throttling, and logging
+- [ ] Add API versioning and centralized error handling
+- [ ] Add unit and integration tests for API Gateway
+
+---
+
+## Resiliency and Error Handling
+
+- [ ] Implement circuit breaker pattern for external integrations (payment, AV, SSO, notification)
+- [ ] Implement retry logic with exponential backoff for transient errors
+- [ ] Implement timeout handling for all external calls
+- [ ] Add centralized error handling and logging for all microservices
+
+---
+
+## Observability
+
+- [ ] Configure Prometheus for metrics collection
+- [ ] Configure Grafana dashboards for monitoring
+- [ ] Configure ELK Stack for centralized logging
+- [ ] Integrate OpenTelemetry for distributed tracing
+
+---
+
+## Security
+
+- [ ] Enforce TLS for all internal and external communication
+- [ ] Configure secrets management (AWS KMS, HashiCorp Vault)
+- [ ] Configure WAF rules for edge security
+
+---
+
+## TODO: Clarifications Needed
+
+- [ ] Clarify data model for Partner entity (fields, relationships) from domain experts
+- [ ] Clarify detailed field-level PII masking rules for documents
+- [ ] Clarify SLA and escalation rules for ticketing
+- [ ] Clarify certification workflow and tracking requirements for Knowledge Hub
+- [ ] Clarify webhook payload schemas for Partner IT System integrations
+- [ ] Clarify feature IDs and related features for traceability

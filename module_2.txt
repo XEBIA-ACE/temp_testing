@@ -1,0 +1,161 @@
+# Design: Digital Aggregators Partner Portal
+
+## Technical Approach
+
+The Digital Aggregators Partner Portal is designed as a cloud-native, microservices-based platform, leveraging API-first, event-driven, and CQRS patterns for scalability, security, and operational efficiency. The architecture is modular, with each business domain encapsulated in its own microservice, enabling independent deployment, scaling, and maintenance.
+
+---
+
+## Architecture Decisions
+
+### 1. Microservices Architecture
+- Each business domain (leads, documents, analytics, finance, users, ticketing, knowledge) is implemented as an independent microservice.
+- Microservices communicate via REST/HTTPS and event-driven messaging (Kafka/RabbitMQ).
+- Stateless services enable horizontal scaling and resilience.
+
+### 2. API Gateway
+- Kong/Apigee/Nginx serves as the unified ingress for all REST APIs.
+- Handles authentication (OAuth2/JWT), RBAC policy enforcement, rate limiting, logging, and protocol mediation.
+- Provides API versioning and centralized error handling.
+
+### 3. Event-Driven Architecture
+- Kafka/RabbitMQ/SQS is used for decoupled, async workflows (lead events, notifications, bulk processing).
+- Event sourcing enables audit trails and replay capabilities.
+
+### 4. CQRS for Analytics
+- Transactional data flows into OLTP stores (PostgreSQL).
+- Analytical workloads run on denormalized stores (Elasticsearch, OLAP DBs).
+- Separation of read and write models improves performance and scalability.
+
+### 5. RBAC and Geo-Scoping
+- Centralized RBAC service (OPA/Keycloak/Casbin) enforces least-privilege access at all tiers.
+- Geo-scoping restricts data access based on user location/region.
+
+### 6. Secure Document Management
+- Documents stored in S3/Blob with server-side encryption.
+- Pre-signed URLs for secure, time-limited access.
+- AV scanning on upload; PII masking as needed.
+
+### 7. Immutable Audit Logging
+- All sensitive actions logged to append-only store (Kafka Streams, Elasticsearch).
+- Audit logs are searchable and retained for compliance.
+
+### 8. Multi-Channel Notifications
+- Notification service supports in-app, email, SMS, and webhooks.
+- Delivery tracking and retry logic for reliability.
+
+### 9. Observability
+- Prometheus for metrics, Grafana for dashboards, ELK for logs.
+- OpenTelemetry for distributed tracing.
+
+---
+
+## Data Flow
+
+### Lead Intake
+```
+User → API Gateway → LeadController → LeadService → LeadRepository (PostgreSQL)
+                                      ↓
+                              LeadEventPublisher (Kafka)
+                                      ↓
+                              NotificationService → Email/SMS Gateway
+                                      ↓
+                              AuditService (Elasticsearch)
+```
+
+### Document Upload
+```
+User → API Gateway → DocumentController → DocumentService → ObjectStorageClient (S3)
+                                          ↓
+                                   AVScanClient (ClamAV)
+                                          ↓
+                                   DocumentRepository (PostgreSQL)
+                                          ↓
+                                   AuditService (Elasticsearch)
+```
+
+### Payout
+```
+Finance User → API Gateway → FinanceController → FinanceService → PaymentGatewayClient (External)
+                                                 ↓
+                                          FinanceRepository (PostgreSQL)
+                                                 ↓
+                                          NotificationService → Email/SMS Gateway
+                                                 ↓
+                                          AuditService (Elasticsearch)
+```
+
+---
+
+## APIs
+
+See [spec.md](./specs/spec.md) for detailed API specifications.
+
+---
+
+## File/Component Changes
+
+### New Components
+- **LeadController, LeadService, LeadRepository, LeadEventPublisher** (Lead Management)
+- **DocumentController, DocumentService, DocumentRepository, ObjectStorageClient, AVScanClient** (Document Management)
+- **AnalyticsController, AnalyticsService, AnalyticsRepository** (Analytics & Reporting)
+- **FinanceController, FinanceService, FinanceRepository, PaymentGatewayClient** (Finance & Payouts)
+- **UserController, UserService, UserRepository, SSOClient** (User & Access Management)
+- **TicketController, TicketService, TicketRepository, AnnouncementService** (Ticketing & Communication)
+- **KnowledgeController, KnowledgeService, KnowledgeRepository** (Knowledge Hub)
+- **RBACService** (RBAC Infrastructure)
+- **AuditService** (Audit Logging)
+- **NotificationService, NotificationRepository** (Notification Service)
+- **EventBusClient** (Messaging/Event Streaming)
+
+### Data Stores
+- **PostgreSQL:** Leads, Documents, Users, Payouts, Invoices, Tickets, Notifications
+- **Elasticsearch:** Analytics, Audit Logs, Search
+- **Redis:** Cache, Sessions
+- **S3/Blob:** Documents, Media
+
+### External Integrations
+- **SSOClient:** OAuth2/SAML providers
+- **PaymentGatewayClient:** Payment/Tax platforms
+- **AVScanClient:** ClamAV, VirusTotal
+- **NotificationGatewayClient:** Twilio, SendGrid, AWS SNS
+- **CDNClient:** CloudFront, Azure CDN, Fastly
+- **MonitoringClient:** ELK, Prometheus, Grafana
+
+---
+
+## Deployment
+
+- **Kubernetes (EKS/AKS/GKE):** All microservices deployed as containers.
+- **Istio/Service Mesh:** For service-to-service security and observability.
+- **CI/CD:** Jenkins, GitHub Actions, ArgoCD for automated deployment.
+- **Infrastructure-as-Code:** Terraform for provisioning.
+
+---
+
+## Security
+
+- **OAuth2/JWT:** All APIs require authentication.
+- **RBAC:** Enforced at API Gateway and service level.
+- **Encryption:** Data encrypted at rest (S3, PostgreSQL) and in transit (TLS).
+- **WAF:** Edge security for DDoS, injection, XSS.
+- **Secrets Management:** AWS KMS, HashiCorp Vault.
+
+---
+
+## Observability
+
+- **Prometheus:** Metrics collection.
+- **Grafana:** Dashboards and alerting.
+- **ELK Stack:** Centralized logging.
+- **OpenTelemetry:** Distributed tracing.
+
+---
+
+## Compliance
+
+- **GDPR:** Data protection and privacy.
+- **PCI-DSS:** Secure payment processing.
+- **SOX:** Financial reporting and processes.
+
+---
